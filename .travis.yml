@@ -15,6 +15,7 @@ script:
   - yarn run lint
   - NODE_ENV=test yarn migrate
   - yarn run test
+  - cd e2e-test && yarn test
 services:
   - docker
   - postgresql
