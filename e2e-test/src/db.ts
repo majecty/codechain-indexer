@@ -4,20 +4,10 @@ import * as path from "path";
 import { logger } from "./logger";
 
 export const dumpData = async (): Promise<string> => {
-  const { databaseName } = await inquirer.prompt<any>([
-    {
-      type: "string",
-      name: "databaseName",
-      message: "Please give the database name",
-      default: "codechain-indexer-dev"
-    }
-  ]);
-  logger.silly(`DB Name is ${databaseName}`);
-
   return new Promise<string>((resolve, reject) => {
     execFile(
       "pg_dump",
-      ["-T", '"SequelizeMeta"', "-a", databaseName],
+      ["-T", '"SequelizeMeta"', "-a", "codechain-indexer-dev"],
       (err: any, stdout: string, stderr: string) => {
         if (stderr) {
           console.error(stderr);
@@ -92,7 +82,7 @@ export const dumpSchema = async (): Promise<string> => {
 export const loadSchema = async (): Promise<void> => {
   const projectPath = path.join(__dirname, "..");
 
-  logger.silly("Load schema file");
+  logger.debug("Load schema file");
   return new Promise<void>((resolve, reject) => {
     execFile(
       "psql",

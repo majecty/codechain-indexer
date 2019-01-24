@@ -1,6 +1,7 @@
 import * as assert from "assert";
 import { SDK } from "codechain-sdk";
 import * as Docker from "dockerode";
+import * as cleanUp from "./cleanUp";
 import { logger } from "./logger";
 
 const codechainImage =
@@ -18,21 +19,16 @@ export class CodeChain {
   private docker: Docker;
   private container: Docker.Container | null;
   private sdk: SDK;
+  private cleanupToken: cleanUp.Token | null = null;
+  private port: number;
 
-  constructor() {
+  constructor(port: number = 8080) {
+    this.port = port;
     this.docker = new Docker();
     this.container = null;
     this.sdk = new SDK({
-      server: "http://localhost:18080",
+      server: `http://localhost:${port}`,
       keyStoreType: "memory"
-    });
-
-    process.on("SIGINT", async () => {
-      console.log("Caught interrupt signal");
-
-      if (this.container !== null) {
-        this.stop();
-      }
     });
   }
 
@@ -47,18 +43,20 @@ export class CodeChain {
       Cmd: [
         "--jsonrpc-interface",
         "0.0.0.0",
+        "--jsonrpc-port",
+        String(this.port),
         "-c",
         "solo",
         "--reseal-min-period",
         "0",
         "--enable-devel-api"
       ],
-      ExposedPorts: { "18080/tcp": {} },
+      ExposedPorts: { [`${this.port}/tcp`]: {} },
       HostConfig: {
         PortBindings: {
-          "18080/tcp": [
+          [`${this.port}/tcp`]: [
             {
-              HostPort: "18080"
+              HostPort: String(this.port)
             }
           ]
         }
@@ -66,6 +64,8 @@ export class CodeChain {
     });
     logger.debug("Start container");
     await this.container.start();
+
+    this.cleanupToken = cleanUp.register(this.stop);
 
     while (true) {
       try {
@@ -79,14 +79,20 @@ export class CodeChain {
     }
   }
 
-  public async stop() {
+  public stop = async () => {
+    if (this.cleanupToken) {
+      cleanUp.deRegister(this.cleanupToken!);
+      this.cleanupToken = null;
+    }
     if (this.container !== null) {
       const container = this.container;
       this.container = null;
+      logger.debug("Stop CodeChain docker container;");
       await container.stop();
+      logger.debug("Remove CodeChain docker container;");
       await container.remove();
     }
-  }
+  };
 
   private async pullImage(codeChainImage: string): Promise<void> {
     await new Promise((resolve, reject) => {

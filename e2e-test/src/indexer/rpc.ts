@@ -8,4 +8,9 @@ export class IndexerRPC {
 
     return JSON.parse(text);
   }
+
+  public async getStatusSync(): Promise<any> {
+    const text = await rp("http://localhost:9001/api/status/sync");
+    return JSON.parse(text);
+  }
 }
