@@ -23,7 +23,7 @@ export class CodeChain {
     this.docker = new Docker();
     this.container = null;
     this.sdk = new SDK({
-      server: "http://localhost:8080",
+      server: "http://localhost:18080",
       keyStoreType: "memory"
     });
 
@@ -53,12 +53,12 @@ export class CodeChain {
         "0",
         "--enable-devel-api"
       ],
-      ExposedPorts: { "8080/tcp": {} },
+      ExposedPorts: { "18080/tcp": {} },
       HostConfig: {
         PortBindings: {
-          "8080/tcp": [
+          "18080/tcp": [
             {
-              HostPort: "8080"
+              HostPort: "18080"
             }
           ]
         }
