@@ -10,6 +10,8 @@ import * as AssetTypeLogModel from "./assetTypeLog";
 import * as TxModel from "./transaction";
 import { strip0xPrefix } from "./utils/format";
 
+const rlp = require("rlp");
+
 export async function createBlock(
     block: Block,
     sdk: SDK,
@@ -21,6 +23,12 @@ export async function createBlock(
     const { transaction } = options;
     let blockInstance: BlockInstance;
     try {
+        const { missedSigners } = await parseSigners({
+            parentBlockNumber: Math.max(block.number - 1, 0),
+            sdk,
+            seal: block.seal.map(s => Buffer.from(s))
+        });
+
         blockInstance = await models.Block.create(
             {
                 parentHash: strip0xPrefix(block.parentHash.value),
@@ -36,7 +44,8 @@ export async function createBlock(
                 miningReward: miningReward.value.toString(10),
                 transactionsCount: block.transactions.length,
                 transactionsCountByType: getTransactionsCountByType(block),
-                size: block.getSize()
+                size: block.getSize(),
+                missedSignersOfPrev: missedSigners
             },
             { transaction }
         );
@@ -230,4 +239,53 @@ function getTransactionsCountByType(block: Block) {
         transactionsCountByType[t.unsigned.type()] += 1;
     });
     return transactionsCountByType;
+}
+
+function decodeBitsetField(encodedBitSet: Buffer): number[] {
+    const decoded = rlp.decode(encodedBitSet);
+
+    return Array.from(decoded.values());
+}
+
+function unsetBitIndices(bitset: number[], validatorCount: number): number[] {
+    const indices: number[] = [];
+    for (let i = 0; i < validatorCount; i++) {
+        const arrayIndex = Math.floor(i / 8);
+        const bitIndex = i % 8;
+
+        // tslint:disable-next-line:no-bitwise
+        if (!((bitset[arrayIndex] >> bitIndex) & 1)) {
+            indices.push(i);
+        }
+    }
+    return indices;
+}
+
+async function parseSigners({
+    sdk,
+    parentBlockNumber,
+    seal
+}: {
+    sdk: SDK;
+    parentBlockNumber: number;
+    seal: Buffer[];
+}): Promise<{ missedSigners: string[] }> {
+    const PRECOMMIT_BITSET_IDX = 3;
+    const precommitBitset = decodeBitsetField(seal[PRECOMMIT_BITSET_IDX]);
+
+    const validatorAddresses = await sdk.rpc.sendRpcRequest(
+        "chain_getPossibleAuthors",
+        [parentBlockNumber]
+    );
+
+    const missedValidatorIndices: number[] = unsetBitIndices(
+        precommitBitset,
+        validatorAddresses.length
+    );
+
+    return {
+        missedSigners: missedValidatorIndices.map(
+            index => validatorAddresses[index]
+        )
+    };
 }

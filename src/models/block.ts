@@ -17,6 +17,7 @@ export interface BlockAttribute {
         [type: string]: number;
     };
     size: number;
+    missedSignersOfPrev: string[];
     createdAt?: string;
     updatedAt?: string;
 }
@@ -98,6 +99,10 @@ export default (
             size: {
                 allowNull: false,
                 type: DataTypes.INTEGER
+            },
+            missedSignersOfPrev: {
+                allowNull: false,
+                type: DataTypes.ARRAY(DataTypes.TEXT)
             },
             createdAt: {
                 allowNull: false,
