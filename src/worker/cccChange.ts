@@ -15,6 +15,19 @@ import * as TransactionModel from "../models/logic/transaction";
 
 const rlp = require("rlp");
 
+async function getCommonParams({
+    blockNumber,
+    sdk
+}: {
+    blockNumber: number;
+    sdk: SDK;
+}) {
+    const { termSeconds } = await sdk.rpc.sendRpcRequest(
+        "chain_getCommonParams",
+        [blockNumber]
+    );
+}
+
 export async function updateCCCChange(
     sdk: SDK,
     block: Block,
@@ -25,6 +38,8 @@ export async function updateCCCChange(
         await initialDistribute(sdk, transaction);
         return;
     }
+
+    const commonParams = await getCommonParams(block.number - 1);
 
     const queries = [];
     queries.push(
