@@ -28,11 +28,14 @@ export async function getBecomeEligible(
     const result: BecomeEligible[] = [];
 
     const currentCandidateOrJailedOrBanned = new Set([
-        ...(await getCandidates(sdk, blockNumber)).map(
-            ({ pubkey }) =>
-                PlatformAddress.fromPublic(pubkey, { networkId: sdk.networkId })
-                    .value
-        ),
+        ...(await getCandidates(sdk, blockNumber)).map(x => {
+            const { pubkey } = x;
+            console.log("Candidates ");
+            console.dir(x);
+            return PlatformAddress.fromPublic(pubkey, {
+                networkId: sdk.networkId
+            }).value;
+        }),
         ...(await getJailed(sdk, blockNumber)).map(
             ({ address }) => address.value
         ),
