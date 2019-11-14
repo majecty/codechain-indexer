@@ -473,13 +473,7 @@ export async function getSnapshot(assetType: H256, blockNumber: number) {
             order: Sequelize.literal(
                 `"totalAssetQuantity" DESC, "assetType" DESC`
             ),
-            include: [
-                {
-                    as: "assetScheme",
-                    model: models.AssetScheme
-                }
-            ],
-            group: ["UTXO.address", "UTXO.assetType", "assetScheme.assetType"]
+            group: ["UTXO.address", "UTXO.assetType"]
         }).then(instances =>
             instances.map(instance => instance.get({ plain: true }))
         );
