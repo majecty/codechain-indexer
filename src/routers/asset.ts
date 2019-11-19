@@ -84,6 +84,11 @@ export function handle(context: IndexerContext, router: Router) {
      *         in: query
      *         required: false
      *         type: number
+     *       - name: lastSeenItem
+     *         description: page for the pagination (default 1)
+     *         in: query
+     *         required: false
+     *         type: number
      *       - name: itemsPerPage
      *         description: items per page for the pagination (default 15)
      *         in: query
